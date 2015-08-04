@@ -30,7 +30,8 @@ module Wavecrest
   end
 
   def self.auth_need?
-    not auth_token or auth_token_issued and auth_token_issued + 1.hour < Time.now
+    return true unless auth_token
+    return true if auth_token_issued.kind_of?(Time) and auth_token_issued + 1.hour < Time.now
   end
 
   def self.auth
