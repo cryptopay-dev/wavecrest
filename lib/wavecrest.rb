@@ -84,7 +84,7 @@ module Wavecrest
         "cardProgramId" => "0",
         "Businesspartnerid" => configuration.partner_id,
         "channelType" => "1",
-        "deliveryType" => 'Standard Delivery Type',
+        # "deliveryType" => 'Standard Delivery Type',
         "localeTime" => Time.now
     }
     payload = default_params.merge params
