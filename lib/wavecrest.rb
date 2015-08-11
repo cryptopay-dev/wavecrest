@@ -114,4 +114,13 @@ module Wavecrest
   def self.transactions user_id, proxy
     send_request :post, "/users/#{user_id}/cards/#{proxy}/transactions", {txnCount: 10000}
   end
+
+  def self.prefunding_account(currency='EUR')
+    send_request :post, "/businesspartners/#{configuration.partner_id}/balance", currency: currency
+  end
+
+  def self.prefunding_accounts
+    resp = send_request :get, "/businesspartners/#{configuration.partner_id}/txnaccounts"
+    resp['txnAccountList']
+  end
 end
