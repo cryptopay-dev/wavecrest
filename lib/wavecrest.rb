@@ -131,4 +131,12 @@ module Wavecrest
   def self.cardholder user_id, proxy
     send_request :get, "/users/#{user_id}/cards/#{proxy}/cardholderinfo"
   end
+
+  def self.upload_docs user_id, payload
+    send_request :post, "/users/#{user_id}/kyc", payload
+  end
+
+  def self.update_status user_id, proxy, payload
+    send_request :post, "/users/#{user_id}/cards/#{proxy}/status", payload
+  end
 end
