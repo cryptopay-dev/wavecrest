@@ -8,8 +8,9 @@ require "wavecrest/configuration"
 module Wavecrest
   # autoload :Wavecrest, 'wavecrest'
   class << self
-    attr_accessor :configuration, :auth_token, :auth_token_issued
+    attr_accessor :configuration
   end
+
 
   def self.configure
     self.configuration ||= Wavecrest::Configuration.new
@@ -29,9 +30,15 @@ module Wavecrest
     ]
   end
 
+  def self.auth_token
+    ENV['_WAVECREST_AUTH_TOKEN']
+  end
+
   def self.auth_need?
+    auth_token_issied_at = Time.at ENV['_WAVECREST_AUTH_TOKEN_ISSUED'].to_i
+    puts "WC current auth token: #{auth_token}, issued: #{auth_token_issied_at}"
     return true unless auth_token
-    return true if auth_token_issued.kind_of?(Time) and auth_token_issued + 1.hour < Time.now
+    return true if auth_token_issied_at.kind_of?(Time) and auth_token_issied_at + 1.hour < Time.now
   end
 
   def self.auth
@@ -49,8 +56,9 @@ module Wavecrest
     request = RestClient::Request.new(method: :post, url: url, headers: headers)
     response = request.execute.body
     data = JSON.parse response
-    self.auth_token = data["token"]
-    self.auth_token_issued = Time.now
+    ENV['_WAVECREST_AUTH_TOKEN'] = data["token"]
+    ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
+    puts "WC Authenticated: #{data["token"]}"
   end
 
 
@@ -69,6 +77,7 @@ module Wavecrest
 
     begin
       RestClient.proxy = configuration.proxy if configuration.proxy
+      puts "WC request: #{method} #{url}"
       request = RestClient::Request.new(method: method, url: url, payload: payload, headers: headers)
       response = request.execute.body
       RestClient.proxy = nil
