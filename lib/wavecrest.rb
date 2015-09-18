@@ -30,6 +30,42 @@ module Wavecrest
     ]
   end
 
+  def self.card_status
+    [
+        "READY_TO_ACTIVE",
+        "READY_FOR_AE",
+        "Intermediate_Assignment",
+        "ACTIVE",
+        "EXPIRED",
+        "LOST",
+        "STOLEN",
+        "DESTROYED",
+        "DAMAGED",
+        "DORMANT",
+        "CLOSED",
+        "REPLACED",
+        "SUSPENDED",
+        "SACTIVE",
+        "REVOKED",
+        "CCLOSED",
+        "MBCLOSED",
+        "FRAUD",
+        "PFRAUD",
+        "CHARGEOFF",
+        "DECEASED",
+        "WARNING",
+        "MUCLOSED",
+        "VOID",
+        "NONRENEWAL",
+        "LAST_STMT",
+        "INACTIVE",
+        "BLOCKED",
+        "DEACTIVATE",
+        "ENABLE",
+        "UNSUSPEND"
+    ]
+  end
+
   def self.auth_token
     ENV['_WAVECREST_AUTH_TOKEN']
   end
