@@ -184,4 +184,8 @@ module Wavecrest
   def self.update_status user_id, proxy, payload
     send_request :post, "/users/#{user_id}/cards/#{proxy}/status", payload
   end
+
+  def self.user_details user_id
+    send_request :get, "/users/#{user_id}"
+  end
 end
