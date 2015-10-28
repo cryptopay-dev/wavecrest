@@ -18,16 +18,14 @@ module Wavecrest
   end
 
   def self.countries
-    [
-        'AX', 'AL', 'AD', 'AI', 'AG', 'AR', 'AM', 'AW', 'AU', 'AT', 'BS', 'BH', 'BB', 'BY', 'BE', 'BZ', 'BM', 'BT',
-        'BQ', 'BA', 'BR', 'BN', 'BG', 'CA', 'CV', 'KY', 'CL', 'CN', 'CO', 'CR', 'HR', 'CW', 'CY', 'CZ', 'DK', 'DM',
-        'DO', 'EC', 'SV', 'EE', 'FK', 'FO', 'FI', 'FR', 'GF', 'GE', 'DE', 'GI', 'GR', 'GL', 'GD', 'GP', 'GT', 'GG',
-        'GY', 'HK', 'HU', 'IS', 'ID', 'IE', 'IM', 'IL', 'IT', 'JM', 'JP', 'JE', 'JO', 'KZ', 'KR', 'XK', 'KW', 'LV',
-        'LI', 'LT', 'LU', 'MK', 'MY', 'MV', 'MT', 'MQ', 'MU', 'YT', 'MX', 'MD', 'MC', 'MN', 'ME', 'MA', 'NP', 'NL',
-        'NZ', 'NI', 'NO', 'OM', 'PA', 'PG', 'PY', 'PE', 'PH', 'PL', 'PT', 'QA', 'RE', 'RO', 'RU', 'BL', 'KN', 'LC',
-        'MF', 'VC', 'SM', 'SA', 'RS', 'SC', 'SG', 'SX', 'SK', 'SI', 'ZA', 'ES', 'SR', 'SE', 'CH', 'TW', 'TH', 'TT',
-        'TR', 'TC', 'UA', 'AE', 'GB', 'UY', 'VE', 'VG'
-    ]
+    %w(
+    AX AL AD AI AG AR AM AW AU AT AZ BS BH BB BY BE BZ BM BT BQ BA BR BN BG
+    CA KY CL CN CO CR HR CY CZ DK DM DO EC SV EE FK FO FI FR GF GE DE GI GR
+    GL GD GP GT GG GY HK HU IS ID IE IM IL IT JM JP JE JO KZ KR QZ KW LV LI
+    LT CR HR CY CZ DK DM DO EC SV EE FK FO FI FR GF GE DE GI GR GL GD GP GT
+    GG GY HK HU IS ID IE IM IL IT JM JP JE JO KZ KR QZ KW LV LI LT ES SR SE
+    CH TW TH TT TR TC UA AE GB UY VG
+    )
   end
 
   def self.card_status
