@@ -190,4 +190,8 @@ module Wavecrest
   def self.user_details user_id
     send_request :get, "/users/#{user_id}"
   end
+
+  def self.replace user_id, proxy, payload
+    send_request :post, "/users/#{user_id}/cards/#{proxy}/replace", payload
+  end
 end
