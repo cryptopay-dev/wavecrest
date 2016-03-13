@@ -171,6 +171,10 @@ module Wavecrest
     resp['txnAccountList']
   end
 
+  def self.prefunding_transactions(account_id)
+    send_request :get, "/businesspartners/#{configuration.partner_id}/transactionaccounts/#{account_id}/transfers"
+  end
+
   def self.activate user_id, proxy, payload
     send_request :post, "/users/#{user_id}/cards/#{proxy}/activate", payload
   end
