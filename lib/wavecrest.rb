@@ -198,4 +198,12 @@ module Wavecrest
   def self.replace user_id, proxy, payload
     send_request :post, "/users/#{user_id}/cards/#{proxy}/replace", payload
   end
+
+  def self.transfer user_id, proxy, payload
+    send_request :post, "/cards/#{proxy}/transfers", payload
+  end
+
+  def self.change_user_password user_id, payload
+    send_request :post, "/users/#{user_id}/createPassword", payload
+  end
 end
