@@ -74,7 +74,7 @@ module Wavecrest
 
   def self.auth_need?
     auth_token_issied_at = Time.at ENV['_WAVECREST_AUTH_TOKEN_ISSUED'].to_i
-    puts "WC current auth token: #{auth_token}, issued: #{auth_token_issied_at}"
+    # puts "WC current auth token: #{auth_token}, issued: #{auth_token_issied_at}"
     return true unless auth_token
     return true if auth_token_issied_at.kind_of?(Time) and auth_token_issied_at + 1.hour < Time.now
   end
@@ -96,7 +96,7 @@ module Wavecrest
     data = JSON.parse response
     ENV['_WAVECREST_AUTH_TOKEN'] = data["token"]
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
-    puts "WC Authenticated: #{data["token"]}"
+    # puts "WC Authenticated: #{data["token"]}"
   end
 
 
@@ -115,13 +115,13 @@ module Wavecrest
 
     begin
       RestClient.proxy = configuration.proxy if configuration.proxy
-      puts "WC request: #{method} #{url}"
+      # puts "WC request: #{method} #{url}"
       request = RestClient::Request.new(method: method, url: url, payload: payload, headers: headers)
       response = request.execute.body
       RestClient.proxy = nil
       JSON.parse response
     rescue => e
-      puts e.message, e.response
+      # puts e.message, e.response
       return JSON.parse e.response
     end
   end
