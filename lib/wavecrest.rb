@@ -132,7 +132,6 @@ module Wavecrest
         "cardProgramId" => "0",
         "Businesspartnerid" => configuration.partner_id,
         "channelType" => "1",
-        # "deliveryType" => 'Standard Delivery Type',
         "localeTime" => Time.now
     }
     payload = default_params.merge params
@@ -158,8 +157,8 @@ module Wavecrest
     send_request :get, "/users/#{user_id}/cards/#{proxy}/carddetails"
   end
 
-  def self.transactions user_id, proxy
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/transactions", txnCount: 10000
+  def self.transactions user_id, proxy, count: 100
+    send_request :post, "/users/#{user_id}/cards/#{proxy}/transactions", txnCount: count
   end
 
   def self.prefunding_account(currency='EUR')
