@@ -157,8 +157,9 @@ module Wavecrest
     send_request :get, "/users/#{user_id}/cards/#{proxy}/carddetails"
   end
 
-  def self.transactions user_id, proxy, count: 100
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/transactions", txnCount: count
+  def self.transactions user_id, proxy, count: 100, offset: 0
+    payload = {txnCount: count, offset: offset}
+    send_request :post, "/users/#{user_id}/cards/#{proxy}/transactions", payload
   end
 
   def self.prefunding_account(currency='EUR')
