@@ -208,7 +208,7 @@ module Wavecrest
   end
 
   def self.update_card user_id, proxy, payload
-    send_request :post, "/users/#{user_id}/cards/#{proxy}", payload
+    send_request :post, "/users/#{user_id}/cards/#{proxy}/", payload
   end
 
   def self.card_unload user_id, proxy, payload
