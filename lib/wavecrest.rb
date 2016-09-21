@@ -114,12 +114,11 @@ module Wavecrest
     }
 
     begin
-      request = RestClient::Request.new method: method,
-                                        url: url,
-                                        payload: payload,
-                                        proxy: configuration.proxy,
-                                        headers: headers
+      RestClient.proxy = configuration.proxy if configuration.proxy
+      # puts "WC request: #{method} #{url}"
+      request = RestClient::Request.new(method: method, url: url, payload: payload, headers: headers)
       response = request.execute.body
+      RestClient.proxy = nil
       JSON.parse response
     rescue => e
       # puts e.message, e.response
