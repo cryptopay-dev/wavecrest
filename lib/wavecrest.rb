@@ -93,6 +93,7 @@ module Wavecrest
     RestClient.proxy = configuration.proxy if configuration.proxy
     request = RestClient::Request.new(method: :post, url: url, headers: headers)
     response = request.execute.body
+    RestClient.proxy = nil
     data = JSON.parse response
     ENV['_WAVECREST_AUTH_TOKEN'] = data["token"]
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
