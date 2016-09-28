@@ -3,7 +3,7 @@ require 'net/http'
 require 'json'
 require "wavecrest/version"
 require "wavecrest/configuration"
-
+require "wavecrest/exception"
 
 module Wavecrest
   # autoload :Wavecrest, 'wavecrest'
