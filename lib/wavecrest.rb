@@ -80,52 +80,82 @@ module Wavecrest
   end
 
   def self.auth
-    url = configuration.endpoint + "/v3/services/authenticator"
+    url = URI("#{configuration.endpoint}/v3/services/authenticator")
 
-    headers = {
-        "DeveloperId" => configuration.user,
-        "DeveloperPassword" => configuration.password,
-        "X-Method-Override" => 'login',
-        accept: :json,
-        content_type: :json
-    }
+    if configuration.proxy
+      proxy_uri = URI.parse(configuration.proxy)
+      http = Net::HTTP.new(url.host, url.port, proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password)
+    else
+      http = Net::HTTP.new(url.host, url.port)
+    end
 
-    RestClient.proxy = configuration.proxy if configuration.proxy
-    request = RestClient::Request.new(method: :post, url: url, headers: headers)
-    response = request.execute.body
-    RestClient.proxy = nil
-    data = JSON.parse response
+    if url.scheme == 'https'
+      http.use_ssl = true
+    end
+
+    request = Net::HTTP::Post.new(url.request_uri)
+    request.add_field('Content-Type', 'application/json')
+    request.add_field('Accept', 'application/json')
+    request.add_field('DeveloperId', configuration.user)
+    request.add_field('DeveloperPassword', configuration.password)
+    request.add_field('X-Method-Override', 'login')
+
+    response = http.request(request)
+    data = JSON.parse response.body
     ENV['_WAVECREST_AUTH_TOKEN'] = data["token"]
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
-    # puts "WC Authenticated: #{data["token"]}"
   end
 
 
   def self.send_request method, path, params={}
     auth if auth_need?
 
-    url = configuration.endpoint + "/v3/services" + path
-    payload = params.to_json
-    headers = {
-        "DeveloperId" => configuration.user,
-        "DeveloperPassword" => configuration.password,
-        "AuthenticationToken" => auth_token,
-        accept: :json,
-        content_type: :json
-    }
+    # path must begin with slash
+    url = URI(configuration.endpoint + "/v3/services" + path)
+
+    # Build the connection
+    if configuration.proxy
+      proxy_uri = URI.parse(configuration.proxy)
+      http = Net::HTTP.new(url.host, url.port, proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password)
+    else
+      http = Net::HTTP.new(url.host, url.port)
+    end
+
+    if url.scheme == 'https'
+      http.use_ssl = true
+    end
+
+    if method == :get
+      request = Net::HTTP::Get.new(url.request_uri)
+    elsif method == :post
+      request = Net::HTTP::Post.new(url.request_uri)
+    elsif method == :delete
+      request = Net::HTTP::Delete.new(url.request_uri)
+    elsif method == :put
+      request = Net::HTTP::Put.new(url.request_uri)
+    else
+      raise 'Unsupported request method'
+    end
+
+    unless method == :get
+      request.body = params.to_json
+    end
+
+    request.add_field('Content-Type', 'application/json')
+    request.add_field('Accept', 'application/json')
+    request.add_field('DeveloperId', configuration.user)
+    request.add_field('DeveloperPassword', configuration.password)
+    request.add_field('AuthenticationToken', auth_token)
 
     begin
-      RestClient.proxy = configuration.proxy if configuration.proxy
-      # puts "WC request: #{method} #{url}"
-      request = RestClient::Request.new(method: method, url: url, payload: payload, headers: headers)
-      response = request.execute.body
-      RestClient.proxy = nil
-      JSON.parse response
+      response = http.request(request)
+      JSON.parse response.body
     rescue => e
       # puts e.message, e.response
       return JSON.parse e.response
     end
   end
+
 
 
   def self.request_card(params)
