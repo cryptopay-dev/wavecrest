@@ -1,0 +1,20 @@
+AllCops:
+  TargetRubyVersion: 2.3
+  DisplayCopNames: true
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*
+    - wavecrest.gemspec
+
+Metrics/LineLength:
+  Max: 120
+
+Style/BlockDelimiters:
+  EnforcedStyle: braces_for_chaining
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false

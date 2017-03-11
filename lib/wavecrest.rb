@@ -1,24 +1,12 @@
 require 'net/http'
 require 'json'
 require 'active_support/core_ext/numeric/time'
-require "wavecrest/version"
-require "wavecrest/configuration"
-require "wavecrest/exception"
+require 'wavecrest/version'
+require 'wavecrest/configuration'
+require 'wavecrest/exception'
 
-module Wavecrest
-  # autoload :Wavecrest, 'wavecrest'
-  class << self
-    attr_accessor :configuration
-  end
-
-
-  def self.configure
-    self.configuration ||= Wavecrest::Configuration.new
-    yield(configuration)
-  end
-
-  def self.countries
-    %w(
+module Wavecrest # rubocop:disable Metrics/ModuleLength
+  COUNTRIES = %w(
     AX AL AD AI AG AR AM AW AU AT AZ BS BH BB BY BE BZ BM BT BQ BA BR BN BG
     CA KY CL CN CO
 
@@ -29,43 +17,57 @@ module Wavecrest
     PL PT QA RO RU BL KN LC MF VC SM SA RS SC SG SX SK SI SB ZA
 
     ES SR SE CH TW TH TT TR TC UA AE GB UY VG
-    )
+  ).freeze
+
+  CARD_STATUSES = %w(
+    READY_TO_ACTIVE
+    READY_FOR_AE
+    Intermediate_Assignment
+    ACTIVE
+    EXPIRED
+    LOST
+    STOLEN
+    DESTROYED
+    DAMAGED
+    DORMANT
+    CLOSED
+    REPLACED
+    SUSPENDED
+    SACTIVE
+    REVOKED
+    CCLOSED
+    MBCLOSED
+    FRAUD
+    PFRAUD
+    CHARGEOFF
+    DECEASED
+    WARNING
+    MUCLOSED
+    VOID
+    NONRENEWAL
+    LAST_STMT
+    INACTIVE
+    BLOCKED
+    DEACTIVATE
+    ENABLE
+    UNSUSPEND
+  ).freeze
+
+  class << self
+    attr_accessor :configuration
+  end
+
+  def self.configure
+    self.configuration ||= Wavecrest::Configuration.new
+    yield(configuration)
+  end
+
+  def self.countries
+    COUNTRIES
   end
 
   def self.card_status
-    [
-        "READY_TO_ACTIVE",
-        "READY_FOR_AE",
-        "Intermediate_Assignment",
-        "ACTIVE",
-        "EXPIRED",
-        "LOST",
-        "STOLEN",
-        "DESTROYED",
-        "DAMAGED",
-        "DORMANT",
-        "CLOSED",
-        "REPLACED",
-        "SUSPENDED",
-        "SACTIVE",
-        "REVOKED",
-        "CCLOSED",
-        "MBCLOSED",
-        "FRAUD",
-        "PFRAUD",
-        "CHARGEOFF",
-        "DECEASED",
-        "WARNING",
-        "MUCLOSED",
-        "VOID",
-        "NONRENEWAL",
-        "LAST_STMT",
-        "INACTIVE",
-        "BLOCKED",
-        "DEACTIVATE",
-        "ENABLE",
-        "UNSUSPEND"
-    ]
+    CARD_STATUSES
   end
 
   def self.auth_token
@@ -73,13 +75,12 @@ module Wavecrest
   end
 
   def self.auth_need?
-    auth_token_issied_at = Time.at ENV['_WAVECREST_AUTH_TOKEN_ISSUED'].to_i
-    # puts "WC current auth token: #{auth_token}, issued: #{auth_token_issied_at}"
+    auth_token_issued_at = Time.at(ENV['_WAVECREST_AUTH_TOKEN_ISSUED'].to_i)
     return true unless auth_token
-    return true if auth_token_issied_at.kind_of?(Time) and auth_token_issied_at + 1.hour < Time.now
+    return true if auth_token_issued_at.is_a?(Time) && auth_token_issued_at + 1.hour < Time.now
   end
 
-  def self.auth
+  def self.auth # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     url = URI("#{configuration.endpoint}/v3/services/authenticator")
 
     if configuration.proxy
@@ -89,9 +90,7 @@ module Wavecrest
       http = Net::HTTP.new(url.host, url.port)
     end
 
-    if url.scheme == 'https'
-      http.use_ssl = true
-    end
+    http.use_ssl = true if url.scheme == 'https'
 
     request = Net::HTTP::Post.new(url.request_uri)
     request.add_field('Content-Type', 'application/json')
@@ -101,17 +100,17 @@ module Wavecrest
     request.add_field('X-Method-Override', 'login')
 
     response = http.request(request)
-    data = JSON.parse response.body
-    ENV['_WAVECREST_AUTH_TOKEN'] = data["token"]
+    data = JSON.parse(response.body)
+    ENV['_WAVECREST_AUTH_TOKEN'] = data['token']
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
   end
 
-
-  def self.send_request method, path, params={}
+  # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+  def self.send_request(method, path, params = {})
     auth if auth_need?
 
     # path must begin with slash
-    url = URI(configuration.endpoint + "/v3/services" + path)
+    url = URI(configuration.endpoint + '/v3/services' + path)
 
     # Build the connection
     if configuration.proxy
@@ -121,9 +120,7 @@ module Wavecrest
       http = Net::HTTP.new(url.host, url.port)
     end
 
-    if url.scheme == 'https'
-      http.use_ssl = true
-    end
+    http.use_ssl = true if url.scheme == 'https'
 
     if method == :get
       request = Net::HTTP::Get.new(url.request_uri)
@@ -137,9 +134,7 @@ module Wavecrest
       raise 'Unsupported request method'
     end
 
-    unless method == :get
-      request.body = params.to_json
-    end
+    request.body = params.to_json unless method == :get
 
     request.add_field('Content-Type', 'application/json')
     request.add_field('Accept', 'application/json')
@@ -149,100 +144,97 @@ module Wavecrest
 
     begin
       response = http.request(request)
-      JSON.parse response.body
+      JSON.parse(response.body)
     rescue => e
-      # puts e.message, e.response
-      return JSON.parse e.response
+      return JSON.parse(e.response)
     end
   end
-
-
+  # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
   def self.request_card(params)
     default_params = {
-        "cardProgramId" => "0",
-        "Businesspartnerid" => configuration.partner_id,
-        "channelType" => "1",
-        "localeTime" => Time.now
+      'cardProgramId' => '0',
+      'Businesspartnerid' => configuration.partner_id,
+      'channelType' => '1',
+      'localeTime' => Time.now
     }
-    payload = default_params.merge params
-    send_request :post, "/cards", payload
+    payload = default_params.merge(params)
+    send_request(:post, '/cards', payload)
   end
 
-  def self.load_money(user_id, proxy, params= {})
+  def self.load_money(user_id, proxy, params = {})
     default_params = {
-        "channelType" => "1",
-        "agentId" => configuration.partner_id
+      'channelType' => '1',
+      'agentId' => configuration.partner_id
     }
-    payload = default_params.merge params
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/load", payload
+    payload = default_params.merge(params)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/load", payload)
   end
 
-  def self.balance user_id, proxy
+  def self.balance(user_id, proxy)
     resp = send_request :get, "/users/#{user_id}/cards/#{proxy}/balance"
     resp['avlBal'].to_i
   end
 
-
-  def self.details user_id, proxy
-    send_request :get, "/users/#{user_id}/cards/#{proxy}/carddetails"
+  def self.details(user_id, proxy)
+    send_request(:get, "/users/#{user_id}/cards/#{proxy}/carddetails")
   end
 
-  def self.transactions user_id, proxy, count: 100, offset: 0
-    payload = {txnCount: count, offset: offset}
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/transactions", payload
+  def self.transactions(user_id, proxy, count: 100, offset: 0)
+    payload = { txnCount: count, offset: offset }
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/transactions", payload)
   end
 
-  def self.prefunding_account(currency='EUR')
-    send_request :post, "/businesspartners/#{configuration.partner_id}/balance", currency: currency
+  def self.prefunding_account(currency = 'EUR')
+    send_request(:post, "/businesspartners/#{configuration.partner_id}/balance", currency: currency)
   end
 
   def self.prefunding_accounts
-    resp = send_request :get, "/businesspartners/#{configuration.partner_id}/txnaccounts"
+    resp = send_request(:get, "/businesspartners/#{configuration.partner_id}/txnaccounts")
     resp['txnAccountList']
   end
 
   def self.prefunding_transactions(account_id)
-    send_request :get, "/businesspartners/#{configuration.partner_id}/transactionaccounts/#{account_id}/transfers"
+    send_request(:get, "/businesspartners/#{configuration.partner_id}/transactionaccounts/#{account_id}/transfers")
   end
 
-  def self.activate user_id, proxy, payload
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/activate", payload
+  def self.activate(user_id, proxy, payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/activate", payload)
   end
 
-  def self.cardholder user_id, proxy
-    send_request :get, "/users/#{user_id}/cards/#{proxy}/cardholderinfo"
+  def self.cardholder(user_id, proxy)
+    send_request(:get, "/users/#{user_id}/cards/#{proxy}/cardholderinfo")
   end
 
-  def self.upload_docs user_id, payload
-    send_request :post, "/users/#{user_id}/kyc", payload
+  def self.upload_docs(user_id, payload)
+    send_request(:post, "/users/#{user_id}/kyc", payload)
   end
 
-  def self.update_status user_id, proxy, payload
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/status", payload
+  def self.update_status(user_id, proxy, payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/status", payload)
   end
 
-  def self.user_details user_id
-    send_request :get, "/users/#{user_id}"
+  def self.user_details(user_id)
+    send_request(:get, "/users/#{user_id}")
   end
 
-  def self.replace user_id, proxy, payload
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/replace", payload
+  def self.replace(user_id, proxy, payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/replace", payload)
   end
 
-  def self.transfer user_id, proxy, payload
-    send_request :post, "/cards/#{proxy}/transfers", payload
+  def self.transfer(_user_id, proxy, payload)
+    send_request(:post, "/cards/#{proxy}/transfers", payload)
   end
 
-  def self.change_user_password user_id, payload
-    send_request :post, "/users/#{user_id}/createPassword", payload
+  def self.change_user_password(user_id, payload)
+    send_request(:post, "/users/#{user_id}/createPassword", payload)
   end
 
-  def self.update_card user_id, proxy, payload
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/", payload
+  def self.update_card(user_id, proxy, payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/", payload)
   end
 
-  def self.card_unload user_id, proxy, payload
-    send_request :post, "/users/#{user_id}/cards/#{proxy}/purchase", payload
+  def self.card_unload(user_id, proxy, payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/purchase", payload)
   end
 end

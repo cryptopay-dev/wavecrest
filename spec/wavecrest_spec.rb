@@ -6,6 +6,7 @@ describe Wavecrest do
 
   let(:user_id) { 'whatever_user_id' }
   let(:proxy) { 'whatever_proxy' }
+  let(:partner_id) { wavecrest.configuration.partner_id }
 
   describe '.countries' do
     it 'returns list of countries' do
@@ -124,7 +125,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/cards/#{proxy}/load").to_return(body: success_response) }
 
       it 'loads money' do
-        wavecrest.load_money(user_id, proxy, { whatever: 'whatever' })
+        wavecrest.load_money(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -160,7 +161,7 @@ describe Wavecrest do
     end
 
     describe '.prefunding_account' do
-      let!(:request) { stub_post("businesspartners/#{Wavecrest.configuration.partner_id}/balance").to_return(body: success_response) }
+      let!(:request) { stub_post("businesspartners/#{partner_id}/balance").to_return(body: success_response) }
 
       it 'fetches prefunding account' do
         wavecrest.prefunding_account('USD')
@@ -170,7 +171,7 @@ describe Wavecrest do
 
     describe '.prefunding_accounts' do
       let(:response) { success_response(txnAccountList: [42]) }
-      let!(:request) { stub_get("businesspartners/#{Wavecrest.configuration.partner_id}/txnaccounts").to_return(body: response) }
+      let!(:request) { stub_get("businesspartners/#{partner_id}/txnaccounts").to_return(body: response) }
 
       it 'fetches prefunding accounts' do
         result = wavecrest.prefunding_accounts
@@ -182,7 +183,10 @@ describe Wavecrest do
 
     describe '.prefunding_transactions' do
       let(:account_id) { 'whatever_account_id' }
-      let!(:request) { stub_get("businesspartners/#{Wavecrest.configuration.partner_id}/transactionaccounts/#{account_id}/transfers").to_return(body: success_response) }
+      let!(:request) do
+        stub_get("businesspartners/#{partner_id}/transactionaccounts/#{account_id}/transfers")
+          .to_return(body: success_response)
+      end
 
       it 'fetches prefunding transactions' do
         wavecrest.prefunding_transactions(account_id)
@@ -194,7 +198,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/cards/#{proxy}/activate").to_return(body: success_response) }
 
       it 'activates card' do
-        wavecrest.activate(user_id, proxy, { whatever: 'whatever '})
+        wavecrest.activate(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -212,7 +216,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/kyc").to_return(body: success_response) }
 
       it 'uploads docs' do
-        wavecrest.upload_docs(user_id, { whatever: 'whatever '})
+        wavecrest.upload_docs(user_id, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -221,7 +225,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/cards/#{proxy}/status").to_return(body: success_response) }
 
       it 'updates card status' do
-        wavecrest.update_status(user_id, proxy, { whatever: 'whatever '})
+        wavecrest.update_status(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -239,7 +243,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/cards/#{proxy}/replace").to_return(body: success_response) }
 
       it 'replaces card' do
-        wavecrest.replace(user_id, proxy, { whatever: 'whatever '})
+        wavecrest.replace(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -248,7 +252,7 @@ describe Wavecrest do
       let!(:request) { stub_post("cards/#{proxy}/transfers").to_return(body: success_response) }
 
       it 'transfers money' do
-        wavecrest.transfer(user_id, proxy, { whatever: 'whatever '})
+        wavecrest.transfer(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -257,7 +261,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/createPassword").to_return(body: success_response) }
 
       it 'changes user password' do
-        wavecrest.change_user_password(user_id, { whatever: 'whatever '})
+        wavecrest.change_user_password(user_id, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -266,7 +270,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/cards/#{proxy}/").to_return(body: success_response) }
 
       it 'updates card' do
-        wavecrest.update_card(user_id, proxy, { whatever: 'whatever '})
+        wavecrest.update_card(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
@@ -275,7 +279,7 @@ describe Wavecrest do
       let!(:request) { stub_post("users/#{user_id}/cards/#{proxy}/purchase").to_return(body: success_response) }
 
       it 'unloads money' do
-        wavecrest.card_unload(user_id, proxy, { whatever: 'whatever '})
+        wavecrest.card_unload(user_id, proxy, whatever: 'whatever')
         expect(request).to have_been_made
       end
     end
