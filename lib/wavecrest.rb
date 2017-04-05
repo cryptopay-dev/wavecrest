@@ -4,8 +4,11 @@ require 'active_support/core_ext/numeric/time'
 require 'wavecrest/version'
 require 'wavecrest/configuration'
 require 'wavecrest/exception'
+require 'wavecrest/client'
 
 module Wavecrest # rubocop:disable Metrics/ModuleLength
+  extend self
+
   COUNTRIES = %w(
     AX AL AD AI AG AR AM AW AU AT AZ BS BH BB BY BE BZ BM BT BQ BA BR BN BG
     CA KY CL CN CO
@@ -57,101 +60,51 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     attr_accessor :configuration
   end
 
-  def self.configure
+  def configure
     self.configuration ||= Wavecrest::Configuration.new
     yield(configuration)
   end
 
-  def self.countries
+  def countries
     COUNTRIES
   end
 
-  def self.card_status
+  def card_status
     CARD_STATUSES
   end
 
-  def self.auth_token
+  def auth_token
     ENV['_WAVECREST_AUTH_TOKEN']
   end
 
-  def self.auth_need?
+  def auth_need?
     auth_token_issued_at = Time.at(ENV['_WAVECREST_AUTH_TOKEN_ISSUED'].to_i)
     return true unless auth_token
     return true if auth_token_issued_at.is_a?(Time) && auth_token_issued_at + 1.hour < Time.now
   end
 
-  def self.auth # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-    url = URI("#{configuration.endpoint}/v3/services/authenticator")
+  def auth
+    data = client.call(method: :post, path: '/authenticator', headers: {
+      'DeveloperId' => configuration.user,
+      'DeveloperPassword' => configuration.password,
+      'X-Method-Override' => 'login'
+    })
 
-    if configuration.proxy
-      proxy_uri = URI.parse(configuration.proxy)
-      http = Net::HTTP.new(url.host, url.port, proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password)
-    else
-      http = Net::HTTP.new(url.host, url.port)
-    end
-
-    http.use_ssl = true if url.scheme == 'https'
-
-    request = Net::HTTP::Post.new(url.request_uri)
-    request.add_field('Content-Type', 'application/json')
-    request.add_field('Accept', 'application/json')
-    request.add_field('DeveloperId', configuration.user)
-    request.add_field('DeveloperPassword', configuration.password)
-    request.add_field('X-Method-Override', 'login')
-
-    response = http.request(request)
-    data = JSON.parse(response.body)
     ENV['_WAVECREST_AUTH_TOKEN'] = data['token']
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
   end
 
-  # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
-  def self.send_request(method, path, params = {})
+  def send_request(method, path, params = {})
     auth if auth_need?
 
-    # path must begin with slash
-    url = URI(configuration.endpoint + '/v3/services' + path)
-
-    # Build the connection
-    if configuration.proxy
-      proxy_uri = URI.parse(configuration.proxy)
-      http = Net::HTTP.new(url.host, url.port, proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password)
-    else
-      http = Net::HTTP.new(url.host, url.port)
-    end
-
-    http.use_ssl = true if url.scheme == 'https'
-
-    if method == :get
-      request = Net::HTTP::Get.new(url.request_uri)
-    elsif method == :post
-      request = Net::HTTP::Post.new(url.request_uri)
-    elsif method == :delete
-      request = Net::HTTP::Delete.new(url.request_uri)
-    elsif method == :put
-      request = Net::HTTP::Put.new(url.request_uri)
-    else
-      raise 'Unsupported request method'
-    end
-
-    request.body = params.to_json unless method == :get
-
-    request.add_field('Content-Type', 'application/json')
-    request.add_field('Accept', 'application/json')
-    request.add_field('DeveloperId', configuration.user)
-    request.add_field('DeveloperPassword', configuration.password)
-    request.add_field('AuthenticationToken', auth_token)
-
-    begin
-      response = http.request(request)
-      JSON.parse(response.body)
-    rescue => e
-      return JSON.parse(e.response)
-    end
+    client.call(method: method, path: path, params: params, headers: {
+      'DeveloperId' => configuration.user,
+      'DeveloperPassword' => configuration.password,
+      'AuthenticationToken' => auth_token
+    })
   end
-  # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
-  def self.request_card(params)
+  def request_card(params)
     default_params = {
       'cardProgramId' => '0',
       'Businesspartnerid' => configuration.partner_id,
@@ -162,7 +115,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     send_request(:post, '/cards', payload)
   end
 
-  def self.load_money(user_id, proxy, params = {})
+  def load_money(user_id, proxy, params = {})
     default_params = {
       'channelType' => '1',
       'agentId' => configuration.partner_id
@@ -171,70 +124,76 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/load", payload)
   end
 
-  def self.balance(user_id, proxy)
+  def balance(user_id, proxy)
     resp = send_request :get, "/users/#{user_id}/cards/#{proxy}/balance"
     resp['avlBal'].to_i
   end
 
-  def self.details(user_id, proxy)
+  def details(user_id, proxy)
     send_request(:get, "/users/#{user_id}/cards/#{proxy}/carddetails")
   end
 
-  def self.transactions(user_id, proxy, count: 100, offset: 0)
+  def transactions(user_id, proxy, count: 100, offset: 0)
     payload = { txnCount: count, offset: offset }
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/transactions", payload)
   end
 
-  def self.prefunding_account(currency = 'EUR')
+  def prefunding_account(currency = 'EUR')
     send_request(:post, "/businesspartners/#{configuration.partner_id}/balance", currency: currency)
   end
 
-  def self.prefunding_accounts
+  def prefunding_accounts
     resp = send_request(:get, "/businesspartners/#{configuration.partner_id}/txnaccounts")
     resp['txnAccountList']
   end
 
-  def self.prefunding_transactions(account_id)
+  def prefunding_transactions(account_id)
     send_request(:get, "/businesspartners/#{configuration.partner_id}/transactionaccounts/#{account_id}/transfers")
   end
 
-  def self.activate(user_id, proxy, payload)
+  def activate(user_id, proxy, payload)
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/activate", payload)
   end
 
-  def self.cardholder(user_id, proxy)
+  def cardholder(user_id, proxy)
     send_request(:get, "/users/#{user_id}/cards/#{proxy}/cardholderinfo")
   end
 
-  def self.upload_docs(user_id, payload)
+  def upload_docs(user_id, payload)
     send_request(:post, "/users/#{user_id}/kyc", payload)
   end
 
-  def self.update_status(user_id, proxy, payload)
+  def update_status(user_id, proxy, payload)
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/status", payload)
   end
 
-  def self.user_details(user_id)
+  def user_details(user_id)
     send_request(:get, "/users/#{user_id}")
   end
 
-  def self.replace(user_id, proxy, payload)
+  def replace(user_id, proxy, payload)
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/replace", payload)
   end
 
-  def self.transfer(_user_id, proxy, payload)
+  def transfer(_user_id, proxy, payload)
     send_request(:post, "/cards/#{proxy}/transfers", payload)
   end
 
-  def self.change_user_password(user_id, payload)
+  def change_user_password(user_id, payload)
     send_request(:post, "/users/#{user_id}/createPassword", payload)
   end
 
-  def self.update_card(user_id, proxy, payload)
+  def update_card(user_id, proxy, payload)
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/", payload)
   end
 
-  def self.card_unload(user_id, proxy, payload)
+  def card_unload(user_id, proxy, payload)
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/purchase", payload)
+  end
+
+  private
+
+  def client
+    Client.new(configuration)
   end
 end

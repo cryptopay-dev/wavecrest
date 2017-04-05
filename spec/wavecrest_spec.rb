@@ -22,7 +22,19 @@ describe Wavecrest do
 
   describe '.auth' do
     let(:response) { { token: SecureRandom.hex }.to_json }
-    let!(:request) { stub_post('authenticator').to_return(body: response) }
+    let(:headers) do
+      {
+        'Content-Type': 'application/json',
+        'DeveloperId': wavecrest.configuration.user,
+        'DeveloperPassword': wavecrest.configuration.password,
+        'X-Method-Override': 'login'
+      }
+    end
+    let!(:request) do
+      stub_post('authenticator')
+        .with(body: '', headers: headers)
+        .to_return(body: response)
+    end
 
     it 'requests auth token' do
       wavecrest.auth
@@ -71,7 +83,21 @@ describe Wavecrest do
     end
 
     context 'verbs' do
-      before { stub_auth_need(false) }
+      let(:token) { SecureRandom.hex }
+      let(:params) { { whatever: 'whatever' } }
+      let(:headers) do
+        {
+          'Content-Type': 'application/json',
+          'DeveloperId': wavecrest.configuration.user,
+          'DeveloperPassword': wavecrest.configuration.password,
+          'AuthenticationToken': token
+        }
+      end
+
+      before do
+        stub_auth_need(true)
+        stub_post('authenticator').to_return(body: { token: token }.to_json)
+      end
 
       it 'performs GET requests' do
         request = stub_wavecrest_request(:get, 'cards').to_return(body: success_response)
@@ -81,22 +107,30 @@ describe Wavecrest do
       end
 
       it 'performs POST requests' do
-        request = stub_wavecrest_request(:get, 'cards').to_return(body: success_response)
-        wavecrest.send_request(:get, '/cards')
+        request = stub_wavecrest_request(:post, 'cards')
+          .with(body: params.to_json, headers: headers)
+          .to_return(body: success_response)
+
+        wavecrest.send_request(:post, '/cards', params)
 
         expect(request).to have_been_made
       end
 
       it 'performs DELETE requests' do
-        request = stub_wavecrest_request(:delete, 'cards').to_return(body: success_response)
-        wavecrest.send_request(:delete, '/cards')
+        request = stub_wavecrest_request(:delete, 'cards')
+          .with(body: params.to_json)
+          .to_return(body: success_response)
+
+        wavecrest.send_request(:delete, '/cards', params)
 
         expect(request).to have_been_made
       end
 
       it 'performs PUT requests' do
-        request = stub_wavecrest_request(:put, 'cards').to_return(body: success_response)
-        wavecrest.send_request(:put, '/cards')
+        request = stub_wavecrest_request(:put, 'cards')
+          .with(body: params.to_json)
+          .to_return(body: success_response)
+        wavecrest.send_request(:put, '/cards', params)
 
         expect(request).to have_been_made
       end
