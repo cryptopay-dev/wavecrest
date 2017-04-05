@@ -1,6 +1,6 @@
-require 'rest_client'
 require 'net/http'
 require 'json'
+require 'active_support/core_ext/numeric/time'
 require "wavecrest/version"
 require "wavecrest/configuration"
 require "wavecrest/exception"
