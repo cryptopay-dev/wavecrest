@@ -1,4 +1,4 @@
-require 'active_support/core_ext/object/blank'
+require 'wavecrest/error_handler'
 
 module Wavecrest
   class Client
@@ -7,17 +7,11 @@ module Wavecrest
       'Accept' => 'application/json'.freeze
     }.freeze
 
-    REQUEST_CLASSES = {
-      get: Net::HTTP::Get,
-      post: Net::HTTP::Post,
-      delete: Net::HTTP::Delete,
-      put: Net::HTTP::Put
-    }.freeze
-
-    attr_reader :configuration
+    attr_reader :configuration, :error_handler
 
     def initialize(configuration)
       @configuration = configuration
+      @error_handler = ErrorHandler.new
     end
 
     def call(method:, path:, params: {}, headers: {})
@@ -27,7 +21,7 @@ module Wavecrest
       request = build_request(method, url, params, headers)
       response = http.request(request)
 
-      JSON.parse(response.body)
+      parse_response(response)
     end
 
     private
@@ -48,9 +42,8 @@ module Wavecrest
     # rubocop:enable Metrics/AbcSize
 
     def build_request(method, url, params, headers)
-      klass = REQUEST_CLASSES.fetch(method) do
-        raise "Unsupported request method #{method}"
-      end
+      klass = "Net::HTTP::#{method.to_s.camelize}".safe_constantize
+      raise "Unsupported request method #{method}" unless klass
 
       request = klass.new(url.request_uri)
       request.body = params.to_json if params.present? && method != :get
@@ -60,6 +53,12 @@ module Wavecrest
       end
 
       request
+    end
+
+    def parse_response(response)
+      data = JSON.parse(response.body)
+      error_handler.check(data)
+      data
     end
   end
 end

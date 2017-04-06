@@ -1,9 +1,11 @@
 require 'net/http'
 require 'json'
+require 'active_support/core_ext/object/blank'
 require 'active_support/core_ext/numeric/time'
+require 'active_support/core_ext/string/inflections'
 require 'wavecrest/version'
 require 'wavecrest/configuration'
-require 'wavecrest/exception'
+require 'wavecrest/errors'
 require 'wavecrest/client'
 
 module Wavecrest # rubocop:disable Metrics/ModuleLength

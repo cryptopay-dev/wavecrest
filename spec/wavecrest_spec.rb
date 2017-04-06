@@ -137,8 +137,49 @@ describe Wavecrest do
 
       it 'fails with unknown verbs' do
         expect {
-          wavecrest.send_request(:patch, '/cards')
+          wavecrest.send_request(:whatever, '/cards')
         }.to raise_error(/Unsupported/)
+      end
+    end
+
+    context 'error handling' do
+      before do
+        stub_auth_need(false)
+        stub_post('cards').to_return(body: response.to_json)
+      end
+
+      context 'multiple errors' do
+        let(:response) do
+          {
+            'errorDetails' => [
+              {
+                'errorCode' => '1162',
+                'errorDescription' => 'Currency is not valid'
+              }
+            ]
+          }
+        end
+
+        it 'raises error' do
+          expect {
+            wavecrest.send_request(:post, '/cards')
+          }.to raise_error Wavecrest::Error
+        end
+      end
+
+      context 'single error' do
+        let(:response) do
+          {
+            'errorMessage' => 'Invalid Enum Value in the request - Index: 0, Size: 0',
+            'errorCode' => '1001'
+          }
+        end
+
+        it 'raises error' do
+          expect {
+            wavecrest.send_request(:post, '/cards')
+          }.to raise_error Wavecrest::Error
+        end
       end
     end
   end
