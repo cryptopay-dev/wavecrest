@@ -1,3 +1,3 @@
 module Wavecrest
-  VERSION = '0.0.22'.freeze
+  VERSION = '1.0.0'.freeze
 end
