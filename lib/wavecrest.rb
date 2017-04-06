@@ -127,8 +127,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   end
 
   def balance(user_id, proxy)
-    resp = send_request :get, "/users/#{user_id}/cards/#{proxy}/balance"
-    resp['avlBal'].to_i
+    send_request(:get, "/users/#{user_id}/cards/#{proxy}/balance")
   end
 
   def details(user_id, proxy)

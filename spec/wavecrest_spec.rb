@@ -206,14 +206,11 @@ describe Wavecrest do
     end
 
     describe '.balance' do
-      let(:response) { success_response(avlBal: '42') }
-      let!(:request) { stub_get("users/#{user_id}/cards/#{proxy}/balance").to_return(body: response) }
+      let!(:request) { stub_get("users/#{user_id}/cards/#{proxy}/balance").to_return(body: success_response) }
 
       it 'fetches balance' do
-        result = wavecrest.balance(user_id, proxy)
-
+        wavecrest.balance(user_id, proxy)
         expect(request).to have_been_made
-        expect(result).to eq 42
       end
     end
 
