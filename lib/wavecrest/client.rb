@@ -21,6 +21,7 @@ module Wavecrest
       request = build_request(method, url, params, headers)
       response = http.request(request)
 
+      check_response_error(response)
       parse_response(response)
     end
 
@@ -55,10 +56,16 @@ module Wavecrest
       request
     end
 
+    def check_response_error(response)
+      response.error! if response.is_a?(Net::HTTPServerError)
+    end
+
     def parse_response(response)
       data = JSON.parse(response.body)
       error_handler.check(data)
       data
+    rescue JSON::ParserError
+      raise Wavecrest::Exception, "#{response.code}: malformed response"
     end
   end
 end

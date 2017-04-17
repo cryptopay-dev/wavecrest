@@ -145,8 +145,10 @@ describe Wavecrest do
     context 'error handling' do
       before do
         stub_auth_need(false)
-        stub_post('cards').to_return(body: response.to_json)
+        stub_post('cards').to_return(body: response, status: status)
       end
+
+      let(:status) { 400 }
 
       context 'multiple errors' do
         let(:response) do
@@ -157,7 +159,7 @@ describe Wavecrest do
                 'errorDescription' => 'Currency is not valid'
               }
             ]
-          }
+          }.to_json
         end
 
         it 'raises error' do
@@ -172,13 +174,35 @@ describe Wavecrest do
           {
             'errorMessage' => 'Invalid Enum Value in the request - Index: 0, Size: 0',
             'errorCode' => '1001'
-          }
+          }.to_json
         end
 
         it 'raises error' do
           expect {
             wavecrest.send_request(:post, '/cards')
           }.to raise_error Wavecrest::Error
+        end
+      end
+
+      context '5xx status' do
+        let(:response) { '' }
+        let(:status) { 522 }
+
+        it 'raises error' do
+          expect {
+            wavecrest.send_request(:post, '/cards')
+          }.to raise_error Net::HTTPFatalError
+        end
+      end
+
+      context 'malformed response' do
+        let(:response) { '<html></html>' }
+        let(:status) { 200 }
+
+        it 'raises error' do
+          expect {
+            wavecrest.send_request(:post, '/cards')
+          }.to raise_error Wavecrest::Exception, /200/
         end
       end
     end
