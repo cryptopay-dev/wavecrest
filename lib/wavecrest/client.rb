@@ -7,6 +7,8 @@ module Wavecrest
       'Accept' => 'application/json'.freeze
     }.freeze
 
+    DEFAULT_READ_TIMEOUT = 30.seconds
+
     attr_reader :configuration, :error_handler
 
     def initialize(configuration)
@@ -14,10 +16,10 @@ module Wavecrest
       @error_handler = ErrorHandler.new
     end
 
-    def call(method:, path:, params: {}, headers: {})
+    def call(method:, path:, params: {}, headers: {}, read_timeout: nil)
       url = URI.join(configuration.endpoint, File.join('/v3/services/', path))
 
-      http = build_http(url)
+      http = build_http(url, read_timeout)
       request = build_request(method, url, params, headers)
       response = http.request(request)
 
@@ -28,7 +30,7 @@ module Wavecrest
     private
 
     # rubocop:disable Metrics/AbcSize
-    def build_http(url)
+    def build_http(url, read_timeout = nil)
       if configuration.proxy
         proxy_uri = URI.parse(configuration.proxy)
         http = Net::HTTP.new(url.host, url.port, proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password)
@@ -36,6 +38,7 @@ module Wavecrest
         http = Net::HTTP.new(url.host, url.port)
       end
 
+      http.read_timeout = read_timeout || DEFAULT_READ_TIMEOUT
       http.use_ssl = true if url.scheme == 'https'
 
       http
