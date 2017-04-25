@@ -58,6 +58,8 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     UNSUSPEND
   ).freeze
 
+  UPLOAD_DOCS_READ_TIMEOUT = 180.seconds
+
   class << self
     attr_accessor :configuration
   end
@@ -96,10 +98,10 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
   end
 
-  def send_request(method, path, params = {})
+  def send_request(method, path, read_timeout: nil, params: {})
     auth if auth_need?
 
-    client.call(method: method, path: path, params: params, headers: {
+    client.call(method: method, path: path, params: params, read_timeout: read_timeout, headers: {
       'DeveloperId' => configuration.user,
       'DeveloperPassword' => configuration.password,
       'AuthenticationToken' => auth_token
@@ -114,7 +116,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
       'localeTime' => Time.now
     }
     payload = default_params.merge(params)
-    send_request(:post, '/cards', payload)
+    send_request(:post, '/cards', params: payload)
   end
 
   def load_money(user_id, proxy, params = {})
@@ -123,7 +125,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
       'agentId' => configuration.partner_id
     }
     payload = default_params.merge(params)
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/load", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/load", params: payload)
   end
 
   def balance(user_id, proxy)
@@ -136,11 +138,11 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
 
   def transactions(user_id, proxy, count: 100, offset: 0)
     payload = { txnCount: count, offset: offset }
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/transactions", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/transactions", params: payload)
   end
 
   def prefunding_account(currency = 'EUR')
-    send_request(:post, "/businesspartners/#{configuration.partner_id}/balance", currency: currency)
+    send_request(:post, "/businesspartners/#{configuration.partner_id}/balance", params: { currency: currency })
   end
 
   def prefunding_accounts
@@ -153,7 +155,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   end
 
   def activate(user_id, proxy, payload)
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/activate", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/activate", params: payload)
   end
 
   def cardholder(user_id, proxy)
@@ -161,11 +163,11 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   end
 
   def upload_docs(user_id, payload)
-    send_request(:post, "/users/#{user_id}/kyc", payload)
+    send_request(:post, "/users/#{user_id}/kyc", params: payload, read_timeout: UPLOAD_DOCS_READ_TIMEOUT)
   end
 
   def update_status(user_id, proxy, payload)
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/status", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/status", params: payload)
   end
 
   def user_details(user_id)
@@ -173,23 +175,23 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   end
 
   def replace(user_id, proxy, payload)
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/replace", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/replace", params: payload)
   end
 
   def transfer(_user_id, proxy, payload)
-    send_request(:post, "/cards/#{proxy}/transfers", payload)
+    send_request(:post, "/cards/#{proxy}/transfers", params: payload)
   end
 
   def change_user_password(user_id, payload)
-    send_request(:post, "/users/#{user_id}/createPassword", payload)
+    send_request(:post, "/users/#{user_id}/createPassword", params: payload)
   end
 
   def update_card(user_id, proxy, payload)
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/", params: payload)
   end
 
   def card_unload(user_id, proxy, payload)
-    send_request(:post, "/users/#{user_id}/cards/#{proxy}/purchase", payload)
+    send_request(:post, "/users/#{user_id}/cards/#{proxy}/purchase", params: payload)
   end
 
   private

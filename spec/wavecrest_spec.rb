@@ -111,7 +111,7 @@ describe Wavecrest do
           .with(body: params.to_json, headers: headers)
           .to_return(body: success_response)
 
-        wavecrest.send_request(:post, '/cards', params)
+        wavecrest.send_request(:post, '/cards', params: params)
 
         expect(request).to have_been_made
       end
@@ -121,7 +121,7 @@ describe Wavecrest do
           .with(body: params.to_json)
           .to_return(body: success_response)
 
-        wavecrest.send_request(:delete, '/cards', params)
+        wavecrest.send_request(:delete, '/cards', params: params)
 
         expect(request).to have_been_made
       end
@@ -130,7 +130,7 @@ describe Wavecrest do
         request = stub_wavecrest_request(:put, 'cards')
           .with(body: params.to_json)
           .to_return(body: success_response)
-        wavecrest.send_request(:put, '/cards', params)
+        wavecrest.send_request(:put, '/cards', params: params)
 
         expect(request).to have_been_made
       end
