@@ -7,8 +7,6 @@ module Wavecrest
       'Accept' => 'application/json'.freeze
     }.freeze
 
-    DEFAULT_READ_TIMEOUT = 30.seconds
-
     attr_reader :configuration, :error_handler
 
     def initialize(configuration)
@@ -38,7 +36,8 @@ module Wavecrest
         http = Net::HTTP.new(url.host, url.port)
       end
 
-      http.read_timeout = read_timeout || DEFAULT_READ_TIMEOUT
+      http.open_timeout = configuration.open_timeout
+      http.read_timeout = read_timeout || configuration.read_timeout
       http.use_ssl = true if url.scheme == 'https'
 
       http
