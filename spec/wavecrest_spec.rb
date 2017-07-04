@@ -381,12 +381,31 @@ describe Wavecrest do
     end
 
     describe '.generate_card_token' do
-      let!(:request) { stub_get("users/#{user_id}/cards/#{proxy}/carddatasession?operation=ViewPin").to_return(body: success_response) }
+      let!(:request) do
+        stub_get("users/#{user_id}/cards/#{proxy}/carddatasession?operation=ViewPin").to_return(body: success_response)
+      end
 
       it 'generates card token' do
         wavecrest.generate_card_token(user_id, proxy, 'ViewPin')
         expect(request).to have_been_made
       end
+    end
+  end
+
+  describe 'Instrumentation' do
+    before { stub_auth_need(false) }
+
+    let!(:request) { stub_post('cards').to_return(body: success_response) }
+
+    it 'instruments requests' do
+      expect(ActiveSupport::Notifications).to receive(:instrument).with(
+        'request.wavecrest',
+        response_time: kind_of(Float),
+        response_code: 200,
+        operation: :whatever
+      )
+
+      wavecrest.send_request(:post, '/cards', operation: :whatever)
     end
   end
 
