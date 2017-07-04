@@ -379,6 +379,15 @@ describe Wavecrest do
         expect(request).to have_been_made
       end
     end
+
+    describe '.generate_card_token' do
+      let!(:request) { stub_get("users/#{user_id}/cards/#{proxy}/carddatasession?operation=ViewPin").to_return(body: success_response) }
+
+      it 'generates card token' do
+        wavecrest.generate_card_token(user_id, proxy, 'ViewPin')
+        expect(request).to have_been_made
+      end
+    end
   end
 
   def stub_auth_need(auth_need)

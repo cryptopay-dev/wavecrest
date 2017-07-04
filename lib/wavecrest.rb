@@ -194,6 +194,10 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/purchase", params: payload)
   end
 
+  def generate_card_token(user_id, proxy, operation)
+    send_request(:get, "/users/#{user_id}/cards/#{proxy}/carddatasession?operation=#{operation}")
+  end
+
   private
 
   def client
