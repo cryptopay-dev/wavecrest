@@ -88,7 +88,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   end
 
   def auth
-    data = client.call(method: :post, path: '/authenticator', headers: {
+    data = client.call(operation: __method__, method: :post, path: '/authenticator', headers: {
       'DeveloperId' => configuration.user,
       'DeveloperPassword' => configuration.password,
       'X-Method-Override' => 'login'
@@ -98,10 +98,12 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
   end
 
-  def send_request(method, path, read_timeout: nil, params: {})
+  def send_request(method, path, read_timeout: nil, params: {}, operation: nil)
     auth if auth_need?
 
-    client.call(method: method, path: path, params: params, read_timeout: read_timeout, headers: {
+    operation ||= caller_locations(1, 1).first.label
+
+    client.call(operation: operation, method: method, path: path, params: params, read_timeout: read_timeout, headers: {
       'DeveloperId' => configuration.user,
       'DeveloperPassword' => configuration.password,
       'AuthenticationToken' => auth_token
@@ -192,6 +194,10 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
 
   def card_unload(user_id, proxy, payload)
     send_request(:post, "/users/#{user_id}/cards/#{proxy}/purchase", params: payload)
+  end
+
+  def generate_card_token(user_id, proxy, operation)
+    send_request(:get, "/users/#{user_id}/cards/#{proxy}/carddatasession?operation=#{operation}")
   end
 
   private

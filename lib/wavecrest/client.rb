@@ -1,4 +1,5 @@
 require 'wavecrest/error_handler'
+require 'active_support/notifications'
 
 module Wavecrest
   class Client
@@ -9,21 +10,25 @@ module Wavecrest
 
     attr_reader :configuration, :error_handler
 
+    delegate :instrument, to: ActiveSupport::Notifications
+
     def initialize(configuration)
       @configuration = configuration
       @error_handler = ErrorHandler.new
     end
 
-    def call(method:, path:, params: {}, headers: {}, read_timeout: nil)
+    # rubocop:disable Metrics/ParameterLists
+    def call(operation:, method:, path:, params: {}, headers: {}, read_timeout: nil)
       url = URI.join(configuration.endpoint, File.join('/v3/services/', path))
 
       http = build_http(url, read_timeout)
       request = build_request(method, url, params, headers)
-      response = http.request(request)
+      response = with_request_instrumentation(operation) { http.request(request) }
 
       check_response_error(response)
       parse_response(response)
     end
+    # rubocop:enable Metrics/ParameterLists
 
     private
 
@@ -68,6 +73,29 @@ module Wavecrest
       data
     rescue JSON::ParserError
       raise Wavecrest::Exception, "#{response.code}: malformed response"
+    end
+
+    def with_request_instrumentation(operation) # rubocop:disable Metrics/MethodLength
+      start_time = Time.current
+
+      response = yield
+
+      instrument(
+        'request.wavecrest',
+        response_time: Time.current - start_time,
+        response_code: response.code.to_i,
+        operation: operation
+      )
+
+      response
+    rescue Net::HTTPServerException => e
+      instrument(
+        'request.wavecrest',
+        response_time: Time.current - start_time,
+        response_code: e.response.code.to_i,
+        operation: operation
+      )
+      raise
     end
   end
 end
