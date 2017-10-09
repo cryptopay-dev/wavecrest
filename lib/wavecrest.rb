@@ -59,6 +59,7 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   ).freeze
 
   UPLOAD_DOCS_READ_TIMEOUT = 180.seconds
+  CARD_TOKEN_TIMEOUT = 1.second
 
   class << self
     attr_accessor :configuration
@@ -98,17 +99,27 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
     ENV['_WAVECREST_AUTH_TOKEN_ISSUED'] = Time.now.to_i.to_s
   end
 
-  def send_request(method, path, read_timeout: nil, params: {}, operation: nil)
+  # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
+  def send_request(method, path, read_timeout: nil, open_timeout: nil, params: {}, operation: nil)
     auth if auth_need?
 
     operation ||= caller_locations(1, 1).first.label
 
-    client.call(operation: operation, method: method, path: path, params: params, read_timeout: read_timeout, headers: {
-      'DeveloperId' => configuration.user,
-      'DeveloperPassword' => configuration.password,
-      'AuthenticationToken' => auth_token
-    })
+    client.call(
+      operation: operation,
+      method: method,
+      path: path,
+      params: params,
+      read_timeout: read_timeout,
+      open_timeout: open_timeout,
+      headers: {
+        'DeveloperId' => configuration.user,
+        'DeveloperPassword' => configuration.password,
+        'AuthenticationToken' => auth_token
+      }
+    )
   end
+  # rubocop:enable Metrics/MethodLength, Metrics/ParameterLists
 
   def request_card(params)
     default_params = {
@@ -197,7 +208,12 @@ module Wavecrest # rubocop:disable Metrics/ModuleLength
   end
 
   def generate_card_token(user_id, proxy, operation)
-    send_request(:get, "/users/#{user_id}/cards/#{proxy}/carddatasession?operation=#{operation}")
+    send_request(
+      :get,
+      "/users/#{user_id}/cards/#{proxy}/carddatasession?operation=#{operation}",
+      open_timeout: CARD_TOKEN_TIMEOUT,
+      read_timeout: CARD_TOKEN_TIMEOUT
+    )
   end
 
   private

@@ -18,10 +18,10 @@ module Wavecrest
     end
 
     # rubocop:disable Metrics/ParameterLists
-    def call(operation:, method:, path:, params: {}, headers: {}, read_timeout: nil)
+    def call(operation:, method:, path:, params: {}, headers: {}, read_timeout: nil, open_timeout: nil)
       url = URI.join(configuration.endpoint, File.join('/v3/services/', path))
 
-      http = build_http(url, read_timeout)
+      http = build_http(url, read_timeout: read_timeout, open_timeout: open_timeout)
       request = build_request(method, url, params, headers)
       response = with_request_instrumentation(operation) { http.request(request) }
 
@@ -33,7 +33,7 @@ module Wavecrest
     private
 
     # rubocop:disable Metrics/AbcSize
-    def build_http(url, read_timeout = nil)
+    def build_http(url, read_timeout: nil, open_timeout: nil)
       if configuration.proxy
         proxy_uri = URI.parse(configuration.proxy)
         http = Net::HTTP.new(url.host, url.port, proxy_uri.host, proxy_uri.port, proxy_uri.user, proxy_uri.password)
@@ -41,7 +41,7 @@ module Wavecrest
         http = Net::HTTP.new(url.host, url.port)
       end
 
-      http.open_timeout = configuration.open_timeout
+      http.open_timeout = open_timeout || configuration.open_timeout
       http.read_timeout = read_timeout || configuration.read_timeout
       http.use_ssl = true if url.scheme == 'https'
 
